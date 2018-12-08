@@ -1,28 +1,21 @@
 #include <iostream>
 #include <boost/asio.hpp>
-#include <unistd.h>
 
 namespace teyo_shogi{
-
-namespace asio = boost::asio;
-using asio::ip::tcp;
 class Command{
+	private:
+		boost::asio::ip::tcp::socket& socket;
 	public:
-	Command();
-	Command(char* ip, int port=4444);
-	bool move(std::string src, std::string dst);
+	Command(boost::asio::ip::tcp::socket & sock);
+	int connect(char* ip, int port);
+	private:
+	std::string receive();
+	void send(std::string const& msg);
+	public:
+	bool move(std::string const& src, std::string const& dst);
 	std::string board();
 	std::string initboard();
 	int whoami();
 	int turn();
-	
-	private:
-	const int interval = 1e4;
-	asio::io_service io_service;
-	tcp::socket* socket;
-
-	std::string receive();
-	void send(std::string const& msg);
-	
 };
 };
