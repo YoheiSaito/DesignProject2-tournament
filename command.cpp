@@ -83,6 +83,11 @@ namespace teyo_shogi{
 		usleep(1e5);
 		return receive();
 	}
+	std::string Command::board2(){
+		send("board");
+		usleep(1e5);
+		return receive();
+	}
 	std::string Command::initboard(){
 		send("initboard");
 		usleep(1e5);

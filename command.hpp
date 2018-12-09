@@ -14,6 +14,7 @@ class Command{
 	public:
 	bool move(std::string const& src, std::string const& dst);
 	std::string board();
+	std::string board2();
 	std::string initboard();
 	int whoami();
 	int turn();
