@@ -34,15 +34,158 @@ Board Board::operator=(Board & right){
 }
 
 
-Move_t Board::create_move(int turn){
+Move_t Board::generate_move(int turn){
 	Move_t moves;
 	return moves;
 }
 bool Board::check_legitimacy(Board const& after){
 	return false;
 }
+//w,hにplayerのコマの利きがあるか
+bool Board::is_check(int w, int h, int player){
+	
+	Koma t = field[w][h];
+	if(h - 1 >= 0){
+		// 直上
+		Koma t = field[w][h-1];
+		if(t.player == player){
+			switch(t.type){
+				case HIYOKO:
+				//WHITEのひよこが上にいるときは利きあり
+				if(t.player != WHITE)
+					break;
+				case NIWATORI:
+				case KIRIN:
+				case LION:
+				return true;
+				default:
+					break;
+			} 
+		}
+	}
+	if(h + 1 <  BOARD_HEIGHT){
+		//直下
+		Koma t = field[w][h+1];
+		if(t.player == player){
+			switch(t.type){
+				case HIYOKO:
+				if(t.player != BLACK)
+					break;
+				case NIWATORI:
+				case KIRIN:
+				case LION:
+				return true;
+				default:
+					break;
+			} 
+		}
+	}
+	if(w - 1 >= 0 ){
+		//左
+		Koma t = field[w-1][h];
+		if(t.player == player){
+			switch(t.type){
+				case NIWATORI:
+				case KIRIN:
+				case LION:
+				return true;
+				default:
+					break;
+			} 
+		}
+		if(h - 1 >= 0){
+			//左上
+			Koma t = field[w-1][h-1];
+			if(t.player == player){
+				switch(t.type){
+					case NIWATORI:
+					//後手のひよこの利きはある
+					if(t.player != WHITE)
+						break;
+					case ZOU:
+					case LION:
+					return true;
+					default:
+						break;
+				} 
+			}
+		}
+		if(h + 1 <  BOARD_HEIGHT){
+			Koma t = field[w-1][h+1];
+			if(t.player == player){
+				switch(t.type){
+					case NIWATORI:
+					if(t.player != BLACK)
+						break;
+					case ZOU:
+
+					case LION:
+					return true;
+					default:
+						break;
+				} 
+			}
+		}
+	}
+
+	if(w + 1 < BOARD_WIDTH){
+		Koma t = field[w+1][h];
+		if(t.player == player){
+			switch(t.type){
+				case NIWATORI:
+				case KIRIN:
+				case LION:
+				return true;
+				default:
+					break;
+			} 
+		}
+		if(h - 1 >= 0){
+			Koma t = field[w+1][h-1];
+			if(t.player == player){
+				switch(t.type){
+					case NIWATORI:
+					if(t.player != WHITE)
+						break;
+					case LION:
+					case ZOU:
+					return true;
+					default:
+						break;
+				} 
+			}
+		}
+		if(h + 1 <  BOARD_HEIGHT){
+			Koma t = field[w+1][h+1];
+			if(t.player == player){
+				switch(t.type){
+					case NIWATORI:
+					if(t.player != BLACK)
+						break;
+					case ZOU:
+					case LION:
+					return true;
+					default:
+						break;
+				} 
+			}
+		}
+	}
+
+	return false;
+}
 Board_p Board::move_piece(int turn, int i, int j, int w, int h){
 	Board_p r;
+	for(int l = 0; l < MAX_CAPS; l++){
+		
+	}
+	if(field[w][h].type == BLANK){
+		r->field[w][h].data = this->field[i][j].data;
+		r->field[i][j].data= BLANK;
+	}
+	if(field[i][j].player == field[w][h].player){
+		r = nullptr;
+	}
 	return r;
 }
 
@@ -60,13 +203,12 @@ Move_t Board::lion_check (int turn, int w, int h){
 				continue;
 			}
 			auto move = move_piece(turn, w, h, w+i, h+j);
-			if(move != nullptr)
+			if(move != nullptr && !move->is_check(w, h, turn))
 				r.push_back(move);
 		}
 	}
 	return r;
 }
-
 Move_t Board::hiyoko_check (int turn, int w, int h){
 	Move_t r;
 	if( turn == BLACK && h > 0){
@@ -168,10 +310,7 @@ Move_t Board::niwatori_check (int turn, int w, int h){
 void Board::write(std::string & command_str){
 	std::memset(caps[BLACK], BLANK, MAX_CAPS);
 	std::memset(caps[WHITE], BLANK, MAX_CAPS);
-	for(int i = 0; i < BOARD_WIDTH; i++){
-		std::memset(field[i], 0, BOARD_HEIGHT);
-	}
-	std::memset(caps[WHITE], BLANK, MAX_CAPS);
+	std::memset(&field[0][0], 0, BOARD_WIDTH*BOARD_HEIGHT);
 	std::string info = command_str;
 	int i = 0;
 	int n = info.size();
@@ -217,8 +356,10 @@ void Board::write(std::string & command_str){
 			this->field[w][h] = k;
 		}
 	}
-	std::sort((char*)caps[BLACK], (char*)caps[BLACK] + MAX_CAPS);
-	std::sort((char*)caps[WHITE], (char*)caps[WHITE] + MAX_CAPS);
+	std::sort((uint8_t*)caps[BLACK], 
+		(uint8_t*)caps[BLACK] + MAX_CAPS, std::greater<uint8_t>());
+	std::sort((uint8_t*)caps[WHITE], 
+		(uint8_t*)caps[WHITE] + MAX_CAPS, std::greater<uint8_t>());
 
 }
 
@@ -279,7 +420,7 @@ void Board::print(){
 				<< koma_to_char(this->field[j][i])
 				<< std::flush;
 		}
-			std::cout << '|' << std::endl;
+			std::cout << " | " << std::endl;
 	}
 	std::cout << "BLACK MOCHIGOMA: " << std::flush;
 	for (int i = 0; i < MAX_CAPS; i ++){
@@ -317,17 +458,13 @@ char Board::koma_to_char (Koma& t){
 }
 
 size_t Board::hash(){
-	std::string board_str = "";
-	for( int i = 0; i < BOARD_WIDTH; i++){
-		for(int j = 0; j < BOARD_HEIGHT; j++)
-		board_str.push_back(field[i][j].data);
-	}
-	for( int i = 0; i < MAX_CAPS; i++){
-		board_str.push_back(caps[BLACK][i].data);
-	}
-	for( int i = 0; i < MAX_CAPS; i++){
-		board_str.push_back(caps[WHITE][i].data);
-	}
-	return std::hash<std::string>()(board_str);
+	std::string bytes(reinterpret_cast<const char*>(this), sizeof(Board));
+	return std::hash<std::string>()(bytes);
 }
-};
+
+inline std::size_t Board::Hash::operator()(const Board& key) const {
+	std::string bytes(reinterpret_cast<const char*>(&key), sizeof(Board));
+	return std::hash<std::string>()(bytes);
+}
+
+}
