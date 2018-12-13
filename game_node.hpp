@@ -1,12 +1,12 @@
-#include "Board.hpp"
+#pragma once
 #include <vector>
+#include <memory>
 
 namespace teyo_shogi{
-struct game_node{
-	int8_t evaration;
+struct Game_Node{
+	int16_t evalation;
 	uint8_t emerge;
-	std::string best_command;
-	size_t best_hash;
-	std::vector<size_t> next_hash;
 };
+using Game_Node_p = std::shared_ptr<Game_Node>;
+
 };
