@@ -33,8 +33,8 @@ all: clean $(TARGET)
 
 clean:
 		-rm -f $(OBJECTS) $(DEPENDS) $(TARGET)
-run:
+run: $(TARGET)
 	$(TARGET)
-sim:
+sim: $(TARGET)
 	$(TARGET) 0 0 0
 -include $(DEPENDS)

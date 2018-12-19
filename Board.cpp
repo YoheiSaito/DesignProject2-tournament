@@ -111,14 +111,11 @@ bool Board::check_legitimacy(Board & after, int self){
 	int e = (self == BLACK)?WHITE:BLACK;
 	Move_t mvs = this->generate_move(e);
 
-	std::cout << "begin ligal check" << std::endl;
 	for( auto&&i : mvs){
 		if(i->hash() == after.hash()){
-			std::cout << "end ligal check" << std::endl;
 			return true;
 		}
 	} 
-	std::cout << "end ligal check" << std::endl;
 	return false;
 }
 //w,hにplayerのコマの利きがあるか
@@ -516,8 +513,6 @@ void Board::write(Board & board){
 
 
 void Board::print(){
-
-	std::cout << std::endl;
 	std::cout << this->hash() << std::endl;
 	std::cout << "WHITE MOCHIGOMA: " << std::flush;
 		for (int i = 0; i < MAX_CAPS; i ++){
@@ -538,7 +533,7 @@ void Board::print(){
 		std::cout << " " << koma_to_char(this->caps[BLACK][i]) 
 			<< " " << std::flush;
 	}
-	std::cout << std::endl;
+	std::cout <<  std::endl;
 }
 
 char Board::koma_to_char (Koma& t){
@@ -615,7 +610,6 @@ bool Board::to_command(Command& cmd, int turn, Board_p after){
 		src.push_back((char)( i+'1'));
 		std::string dst = {(char)(ws[0] +'A')};
 		dst.push_back((char)(hs[0] +'1'));
-		std::cout << "mv "<<src <<' '<< dst << std::endl;
 		return cmd.move(src, dst);
 	}else{
 		if(ws.size() != 2){
@@ -643,7 +637,169 @@ bool Board::to_command(Command& cmd, int turn, Board_p after){
 		return cmd.move(src, dst);
 	}
 }
- 
+int16_t Board::evalate(int turn){
+	//0, 175, 185, 115, 100, 10000
+	static int16_t Mochigoma_point[] = {
+		0, 165, 175, -200, 90, 10000
+	};
+	static int16_t Koma_point[2][4][2][6] = {
+		{
+			{
+				{0, 137, 150, 115, 100, 10000},
+				{0, 137, 150, 105, -50, 10000},
+			},
+			//中二行
+			{
+				{0, 140, 160, 120, 100, 10000},
+				{0, 140, 160, 120, 100, 10000}
+			},
+			{
+				{0, 140, 185, 120, 100, 10000},
+				{0, 140, 185, 120, 100, 10000}
+			},
+			{
+				{0, 137, 150, 115, 100, 10000},
+				{0, 137, 150, 105, -50, 10000},
+			}
+		},
+		//中央
+		{
+			{
+				{0, 137, 160, 105, -50, 10000},
+				{0, 137, 160, 125, 100, 10000},
+			},
+			{
+				{0, 165, 185, 130, 100, 10000},
+				{0, 165, 185, 130, 100, 10000}
+			},
+			{
+				{0, 165, 185, 130, 100, 10000},
+				{0, 165, 185, 130, 100, 10000}
+			},
+			{
+				{0, 137, 160, 125, 100, 10000},
+				{0, 137, 160, 105, -50, 10000},
+			}
+		}
+	};
+	int16_t r = 0;
+	int s = turn==BLACK?1:-1;
+	int h = turn==BLACK?0:BOARD_HEIGHT-1;
+	int ntrn = turn==BLACK?WHITE:BLACK;
+	Koma slion, nlion;
+	slion.type = LION;
+	slion.player = turn;
+	nlion.type = LION;
+	nlion.player = ntrn;
+	//try
+	for(int i = 0; i < BOARD_WIDTH; i++){
+		if ( field[i][h].type == LION && field[i][h].player == turn){
+			if(!is_check(i,h,ntrn))
+				return 30000*s;
+		}
+	}
+	//have captured LION
+	if(caps[turn][0].type == LION){
+		return 30000;
+	}
+	if(caps[ntrn][0].type == LION){
+		return -30000;
+	}
+
+	for(int i = 0; i < BOARD_WIDTH; i++){
+		for(int j = 0; j < BOARD_HEIGHT; j++){
+			if( field[i][j].player == BLACK){
+				r += Koma_point[i%2][j][BLACK][field[i][j].type];
+			}else{
+				r -= Koma_point[i%2][j][WHITE][field[i][j].type];
+			}
+			if( field[i][j].data == nlion.data){
+				if( is_check(i,j, turn)){
+					return 30000*s;
+				}
+			}
+		}
+	}
+	for( int i = 0; i < MAX_CAPS; i++){
+		r += Mochigoma_point[caps[BLACK][i].type];
+		r -= Mochigoma_point[caps[WHITE][i].type];
+	}
+	return s*r;
+}
+
+Move_t Board::generate_check(int player){
+	Move_t in = this->generate_move(player);
+	Koma elion;
+	elion.player = player^1;
+	elion.type = LION;
+	for(int i = 0; i < BOARD_WIDTH; i++){
+		for(int j = 0; j<BOARD_HEIGHT; j++){
+			if(field[i][j].data == elion.data){
+				Move_t::iterator c = in.begin();
+				while(c !=  in.end()){
+					if( !(*c)->is_check(i,j,player) ||
+					     (*c)->caps[player][0].type==LION
+					  ){
+						in.erase(c);
+					}else{
+						c++;
+					}
+				}
+				return in;
+			}
+		}
+	}
+	return in;
+}
+Move_t Board::generate_uncheck(int player){
+	Move_t mvs = this->generate_move(player);
+	Move_t ret;
+	Koma slion;
+	slion.player = player;
+	slion.type = LION;
+	int enmy = player ^1;
+
+	for( auto&& c :mvs){
+		for(int i = 0; i < BOARD_WIDTH; i++){
+			for(int j = 0; j<BOARD_HEIGHT; j++){
+				if((c)->field[i][j].data == slion.data){
+					if( !(c)->is_check(i,j,enmy)){
+						ret.push_back(c);
+					}
+				}
+			}
+		}
+	}
+	return ret;
+}
+// Is the players lion  Tsumero
+Board_p Board::is_checkmate(int player){
+	Move_t checks = this->generate_check(player);
+	for( auto&&c :checks){
+		Move_t ucheck = c->generate_uncheck(player^1);
+		bool checkmate_flg = true;
+		/* for( auto&&uc : ucheck){ */
+			/* if(uc->is_checkmate(player) == nullptr){ */
+				/* checkmate_flg = false; */
+				break;
+			/* } */
+		/* } */
+		if(checkmate_flg == true)
+			return c;
+	}
+	return nullptr;
+}
+/* Move_t Board::generate_safemove(int player){ */
+/* 	Move_t ret; */
+/* 	int enmy = player ^1; */
+/* 	Move_t ucs = generate_uncheck(); */
+/* 	for( auto&&c : ucs){ */
+/* 		if (c->is_checkmate(enmy) == nullptr){ */
+/* 			ret.push_back(c); */
+/* 		} */
+/* 	} */
+/* 	return ret; */
+/* } */
 
 // thanks to @sakutou-metsu
 // https://qiita.com/sokutou-metsu/items/6017a64b264ff023ec72

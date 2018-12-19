@@ -41,6 +41,10 @@ struct Board{
 	Board operator=(Board & right);
 	static char koma_to_char (Koma &t);
 	Move_t generate_move(int turn);
+	Move_t generate_check(int player);
+	Move_t generate_uncheck(int player);
+	Board_p is_checkmate(int player);
+	/* Move_t generate_safemove(int player){ */
 	bool check_legitimacy(Board & after, int self);
 	//w,hにplayerのコマの利きがあるか
 	bool is_check(int w, int h, int player);
@@ -54,6 +58,7 @@ struct Board{
 	size_t hash();
 	Board_p move_piece    (std::string src, std::string dst);
 	bool to_command(Command& cmd, int turn, Board_p after);
+	int16_t evalate(int turn);
 	private:
 	Move_t lion_check     (int w, int h);
 	Move_t niwatori_check (int w, int h);
