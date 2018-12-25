@@ -303,7 +303,7 @@ Move_t Board::lion_check (int w, int h){
 			if( i == 0 && j == 0){
 				continue;
 			}
-			auto move = move_piece(w, h, w+i, h+j, true);
+			auto move = move_piece(w, h, w+i, h+j);
 			if(move != nullptr)
 				r.push_back(move);
 		}
@@ -637,95 +637,7 @@ bool Board::to_command(Command& cmd, int turn, Board_p after){
 		return cmd.move(src, dst);
 	}
 }
-int16_t Board::evalate(int turn){
-	//0, 175, 185, 115, 100, 10000
-	static int16_t Mochigoma_point[] = {
-		0, 165, 175, -200, 90, 10000
-	};
-	static int16_t Koma_point[2][4][2][6] = {
-		{
-			{
-				{0, 137, 150, 115, 100, 10000},
-				{0, 137, 150, 105, -50, 10000},
-			},
-			//中二行
-			{
-				{0, 140, 160, 120, 100, 10000},
-				{0, 140, 160, 120, 100, 10000}
-			},
-			{
-				{0, 140, 185, 120, 100, 10000},
-				{0, 140, 185, 120, 100, 10000}
-			},
-			{
-				{0, 137, 150, 115, 100, 10000},
-				{0, 137, 150, 105, -50, 10000},
-			}
-		},
-		//中央
-		{
-			{
-				{0, 137, 160, 105, -50, 10000},
-				{0, 137, 160, 125, 100, 10000},
-			},
-			{
-				{0, 165, 185, 130, 100, 10000},
-				{0, 165, 185, 130, 100, 10000}
-			},
-			{
-				{0, 165, 185, 130, 100, 10000},
-				{0, 165, 185, 130, 100, 10000}
-			},
-			{
-				{0, 137, 160, 125, 100, 10000},
-				{0, 137, 160, 105, -50, 10000},
-			}
-		}
-	};
-	int16_t r = 0;
-	int s = turn==BLACK?1:-1;
-	int h = turn==BLACK?0:BOARD_HEIGHT-1;
-	int ntrn = turn==BLACK?WHITE:BLACK;
-	Koma slion, nlion;
-	slion.type = LION;
-	slion.player = turn;
-	nlion.type = LION;
-	nlion.player = ntrn;
-	//try
-	for(int i = 0; i < BOARD_WIDTH; i++){
-		if ( field[i][h].type == LION && field[i][h].player == turn){
-			if(!is_check(i,h,ntrn))
-				return 30000*s;
-		}
-	}
-	//have captured LION
-	if(caps[turn][0].type == LION){
-		return 30000;
-	}
-	if(caps[ntrn][0].type == LION){
-		return -30000;
-	}
 
-	for(int i = 0; i < BOARD_WIDTH; i++){
-		for(int j = 0; j < BOARD_HEIGHT; j++){
-			if( field[i][j].player == BLACK){
-				r += Koma_point[i%2][j][BLACK][field[i][j].type];
-			}else{
-				r -= Koma_point[i%2][j][WHITE][field[i][j].type];
-			}
-			if( field[i][j].data == nlion.data){
-				if( is_check(i,j, turn)){
-					return 30000*s;
-				}
-			}
-		}
-	}
-	for( int i = 0; i < MAX_CAPS; i++){
-		r += Mochigoma_point[caps[BLACK][i].type];
-		r -= Mochigoma_point[caps[WHITE][i].type];
-	}
-	return s*r;
-}
 
 Move_t Board::generate_check(int player){
 	Move_t in = this->generate_move(player);

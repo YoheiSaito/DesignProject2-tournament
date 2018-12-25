@@ -1,150 +1,31 @@
-#include <stdexcept>
-#include <iostream>
-#include <unistd.h>
 #include <unordered_map>
 #include "Board.hpp"
-#include "game_node.hpp"
 #include "Command.hpp"
-#define MAX_DEPS 4
-#define MAX(a,b) (((a)>(b))?(a):(b))
-#define MIN(a,b) (((a)<(b))?(a):(b))
+#include "ai_core.hpp"
 using namespace teyo_shogi;
 /* typedef std::unordered_map<Board_p, Game_Node> Game_Tree; */
-typedef std::unordered_map<size_t, Game_Node> Game_Tree;
 
-Board_p adventure(int turn, int depth, Board_p& board);
-bool winable_check(int self, Board_p& x);
+Game_Tree game_tree;
 
-namespace{
-	// treeに入っていないものはフロンティア
-	// BLACK と WHITEで別々のツリーを持っているように見せる
-	// ただし参照先は互いとなる.
-	/* Game_Tree is map that connect Board Hash to Game_Node  */
-	Game_Tree game_tree;
-}
-
-int main(int argc, char* argv[])
-{
-	try{
-		Board_p base(new Board);
-
-	if( argc < 4){
-		Board_p pre_board = nullptr;
-		boost::asio::io_service io_service;
-		boost::asio::ip::tcp::socket socket(io_service);
-		Command cmd(socket);
-		char* ip = argc > 1? (argv[1]):(NULL);
-		int port = argc > 2? std::stoi(argv[2]):(4444);
-		int self = cmd.connect(ip, port);
-		while(1){
-	#if 1
-			while(self != cmd.turn()){
-				usleep(3e5);
-			}
-			//入力
-			std::string input_board = cmd.board();
-			base->write(input_board);
-			if(pre_board != nullptr){
-				if(!pre_board->check_legitimacy(*base, self)){
-					std::cerr 
-					<< "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-					<< "!!! board might be illigal !!!"
-					<< "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-					<<std::endl;
-					usleep(2e6);
-				}
-			}
-			//千日手チェック
-			if( game_tree.find(base->hash()) == game_tree.end()){
-				game_tree[base->hash()].emerge[self] = 0;
-			}else{
-				game_tree[base->hash()].emerge[self]++;
-			}
-			if(game_tree[base->hash()].emerge[self] > 4){
-				std::cout << "!!!sen-nchi-te!!!" << std::endl;
-			}
-			std::cout << game_tree[base->hash()].evalation[self] 
-				<< base->evalate(self)<< std::endl; 
-			//現在の状態の表示
-			int ntrn = (self==BLACK)?WHITE:BLACK;
-			//探索
-			pre_board = adventure(self, MAX_DEPS , base);
-			std::cout << game_tree[pre_board->hash()].evalation[self^1] 
-				<< pre_board->evalate(self^1)<< std::endl; 
-			pre_board->print();
-			//コマンド送信
-			if( !base->to_command(cmd, self, pre_board)){
-				throw "move command error";
-			}
-	#else
-			while(cmd.turn() != self){
-				usleep(3e3);
-			}
-			
-			std::string input_board = cmd.board();
-			base->write(input_board);
-			Move_t ck = base->generate_check(self);
-			Board_p ckm = base->is_checkmate(self);
-
-			ck[0]->print();
-			if( ckm != nullptr){
-				ckm->print();
-			}
-			while(cmd.turn() == self){
-				usleep(3e3);
-			}
-		
-	#endif
-		}
-	}else{
-		int e = 0;
-		Board_p pre_board(new Board);
-		std::string init_str = std::string(INITBOARD);
-		base->write(init_str);
-		while(1){
-			//TODO:千日手カウント
-			base->print();
-			if( winable_check(BLACK, base)){
-				std::cout << "end" <<std::endl;
-				break;
-			}
-			
-			base = adventure(BLACK, MAX_DEPS, base);
-			/* e = evalate( WHITE, base); */
-			base->print();
-			//TODO:千日手カウント
-			if( winable_check(WHITE, base)){
-				std::cout << "end" <<std::endl;
-				break;
-			}
-			base = adventure(WHITE, MAX_DEPS, base);
-			/* e = evalate( BLACK, base); */
-		}
-	}
-	} catch(std::string e){
-		std::cerr << e << std::endl;
-	} catch( char const* e){
-		std::cerr << e << std::endl;
-	}catch (std::logic_error e){
-		std::cerr << e.what() << std::endl;
-	}
-}
-bool winable_check(int self, Board_p& x){
+bool winable_check(Board_p& x, int self){
 	int trh = (self==BLACK)?0:BOARD_HEIGHT-1;
+	int enm = (self==BLACK)?WHITE:BLACK;
+
+	Koma self_lion, enemy_lion;
+	self_lion.player = self;
+	self_lion.type = LION;
+	enemy_lion.player = enm;
+	enemy_lion.type = LION;
+
+
 	if(x->caps[self][0].type == LION){
 		return true;
 	}else{
-		Koma self_lion, enemy_lion;
-		self_lion.player = self;
-		self_lion.type = LION;
-		enemy_lion.player = self^1;
-		enemy_lion.type = LION;
+
 		for(int i = 0; i < BOARD_WIDTH; i++){
 			if( x->field[i][trh].data == self_lion.data){
-				if( !x->is_check(i, trh, self^1))
+				if( !x->is_check(i, trh, enm))
 					return true;
-				else
-					return false;
 			}
 			for(int j = 0; j < BOARD_HEIGHT; j++){
 				if( x->field[i][j].data == enemy_lion.data){
@@ -157,33 +38,126 @@ bool winable_check(int self, Board_p& x){
 	}
 	return false;
 }
-//
-//	@retval next board
 
+int16_t evalate(Board_p p, int turn){
+	//0, 175, 185, 115, 100, 10000
+	static int16_t Mochigoma_point[] = {
+		0, 165, 175, -200, 90, 10000
+	};
+	static int16_t Koma_point[2][4][2][6] = {
+		{
+			{
+				{0, 130, 150, 105, -20, 10000},
+				{0, 130, 150, 115, 100, 10000},
+			},
+			//中二行
+			{
+				{0, 140, 160, 120, 100, 10000},
+				{0, 140, 160, 120, 100, 10000}
+			},
+			{
+				{0, 140, 160, 120, 100, 10000},
+				{0, 140, 160, 120, 100, 10000}
+			},
+			{
+				{0, 130, 150, 115, 100, 10000},
+				{0, 130, 150, 105, -20, 10000},
+			}
+		},
+		//中央
+		{
+			{
+				{0, 130, 160, 105, -20, 10000},
+				{0, 130, 160, 125, 100, 10000},
+			},
+			{
+				{0, 155, 185, 130, 100, 10000},
+				{0, 155, 185, 130, 100, 10000}
+			},
+			{
+				{0, 155, 185, 130, 100, 10000},
+				{0, 155, 185, 130, 100, 10000}
+			},
+			{
+				{0, 130, 160, 125, 100, 10000},
+				{0, 130, 160, 105, -20, 10000},
+			}
+		}
+	};
+	int16_t r = 0;
+	int s = turn==BLACK?1:-1;
+	int h = turn==BLACK?0:BOARD_HEIGHT-1;
+	int ntrn = turn==BLACK?WHITE:BLACK;
+	Koma slion, nlion;
+	slion.type = LION;
+	slion.player = turn;
+	nlion.type = LION;
+	nlion.player = ntrn;
+	//try check
+	for(int i = 0; i < BOARD_WIDTH; i++){
+		if ( p->field[i][h].type == LION &&
+				p->field[i][h].player == turn){
+			if(!p->is_check(i,h,ntrn))
+				return 30000*s;
+		}
+	}
+	//have captured LION
+	if(p->caps[turn][0].type == LION){
+		return 30000;
+	}
+	if(p->caps[ntrn][0].type == LION){
+		return -30000;
+	}
 
-int16_t negamax(Board_p& st, int turn, int depth, int a, int b){
-	Move_t mvs = st->generate_move(turn);
-	int se = st->evalate(turn);
-	int ntrn = (turn==BLACK)?WHITE:BLACK;
+	for(int i = 0; i < BOARD_WIDTH; i++){
+		for(int j = 0; j < BOARD_HEIGHT; j++){
+			int kt = p->field[i][j].type;
+			if( p->field[i][j].player == BLACK){
+				r += Koma_point[i%2][j][BLACK][kt];
+			}else{
+				r -= Koma_point[i%2][j][WHITE][kt];
+			}
+			if( p->field[i][j].data == nlion.data){
+				if( p->is_check(i,j, turn)){
+					return 30000*s;
+				}
+			}
+		}
+	}
+	for( int i = 0; i < MAX_CAPS; i++){
+		r += Mochigoma_point[p->caps[BLACK][i].type];
+		r -= Mochigoma_point[p->caps[WHITE][i].type];
+	}
+	return s*r;
+}
+int16_t negamax(Board_p& st, int turn, int depth, 
+		int a  = INT16_MIN+1, int b = INT16_MAX)
+{
 	size_t h = st->hash();
-	game_tree[h].next[turn] = mvs;
-	if(depth == 0 || mvs.size() == 0){
+	if(depth == 0){
+		int se = evalate(st, turn);
 		game_tree[h].evalation[turn] = se;
-		/* for( int t = 0; t<MAX_DEPS- depth; t++){ */
-			/* std::cout << '\t' << std::flush; */
-		/* } */
-		/* std::cout << se<< std::endl; */
 		return se;
 	}
+	if(winable_check(st, turn)){
+		return (turn==BLACK)?30000:-30000;
+	}
+	Move_t mvs = st->generate_move(turn);
+	if(mvs.size() == 0){ // no moves
+		return (turn==BLACK)?-30000:30000;
+	}
+
+	int ntrn = (turn==BLACK)?WHITE:BLACK;
+	game_tree[h].next[turn] = mvs;
+	
 	int16_t dev = INT16_MIN;
 	for(auto&&i : mvs){
 		//相手の評価の中で一番低いもの -> -で最大のものを選ぶ
 		int16_t ev = -negamax(i, ntrn, depth-1, -b, -a);
 		game_tree[i->hash()].evalation[ntrn] = ev;
-		if(dev < ev ){
+		if( dev < ev ){
 			dev = ev;
 			game_tree[h].best[turn] = i;
-			
 		}
 		if( a < dev){
 			a = dev;
@@ -192,19 +166,11 @@ int16_t negamax(Board_p& st, int turn, int depth, int a, int b){
 			break;
 		}
 	}
-	/* for( int i = 0; i<MAX_DEPS- depth; i++){ */
-	/* 	std::cout << '\t' << std::flush; */
-	/* } */
-	/* if( depth == MAX_DEPS) */
-	/* std::cout << dev<<' '<< st->evalate(turn) << std::endl; */
 	game_tree[h].evalation[turn] = dev;
 	return dev;
 }
-Board_p adventure(int turn, int depth, Board_p& board) {
-	int a = INT16_MIN+1;
-	int b = INT16_MAX;
-	
-	int r = negamax(board, turn, depth, a, b);
+Board_p adventure(Board_p& board, int turn, int depth) {
+	int r = negamax(board, turn, depth);
 	game_tree[board->hash()].evalation[turn] = r;
 	return game_tree[board->hash()].best[turn];
 }

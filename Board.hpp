@@ -58,7 +58,6 @@ struct Board{
 	size_t hash();
 	Board_p move_piece    (std::string src, std::string dst);
 	bool to_command(Command& cmd, int turn, Board_p after);
-	int16_t evalate(int turn);
 	private:
 	Move_t lion_check     (int w, int h);
 	Move_t niwatori_check (int w, int h);
