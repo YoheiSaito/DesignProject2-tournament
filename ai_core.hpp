@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-#define MAX_DEPS 6
+#define MAX_DEPS 8
 #define WORSE 150
 
 namespace {
@@ -18,6 +18,7 @@ namespace teyo_shogi{
 		int emerge;
 		Move_t next;
 		Dynamic_Evals eval;
+		int win;
 	};
 	using Game_Node_p = std::shared_ptr<Game_Node>;
 

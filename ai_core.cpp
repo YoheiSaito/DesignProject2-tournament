@@ -97,20 +97,27 @@ int16_t DobutsuAI::evalate(Board_p p){
 	}
 	return r;
 }
-// TODO : implements a-b algorithm
+
 Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 		int a = INT16_MIN + 1, int b = INT16_MAX) {
 
 	Dynamic_Evals ret;
 	// mvs : move result 
 	// from this vector, we choose the highest evalation game node;
-	auto mvs = board->generate_move(turn);
 	int sgn =  (turn==BLACK)? 1: -1;
 	int ntrn = (turn==BLACK)? WHITE: BLACK;
 	if( depth == 0){
 		ret.second= sgn*evalate(board);
 		ret.first = nullptr;
 		return ret;
+	}
+	Move_t mvs;
+	// 一度展開済みならその結果を使う
+	if(game_tree[turn][board->hash()].next.size() == 0){
+		mvs = board->generate_move(turn);
+		game_tree[turn][board->hash()].next = mvs;
+	}else{
+		mvs = game_tree[turn][board->hash()].next;
 	}
 	if( mvs.size() == 0){
 		// lose 
@@ -119,6 +126,8 @@ Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 		return ret;
 	}
 	ret.second = INT16_MIN;
+
+	
 	for(auto&& i: mvs){
 		// if generated board is ended board, return win
 		if( is_win( i, turn) ){
@@ -134,15 +143,14 @@ Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 				a = ret.second;
 			}
 		}
-		if( a > b)
+		if( a >= b)
 			break;
 
 	}
 	
 	/// 一回目の実行でのみ, 評価関数をノンフロンティアとする
-	// それ以外をノンフロンティアとすると千日手回避に引っかかる
-	if( depth == MAX_DEPS + 1)
-		game_tree[turn][board->hash()].eval = ret;
+	// それ以外をノンフロンティアとすると千日手回避に引っかかる?
+	game_tree[turn][board->hash()].eval = ret;
 
 	return ret;
 }
@@ -184,7 +192,9 @@ Dynamic_Evals DobutsuAI::negamax_avoid( Board_p& board, int turn, int depth,
 Board_p DobutsuAI::adventure(Board_p& board, int turn, int depth) {
 
 	// 初出の盤面の時はemergeを1とし, 探索をする
-	if( game_tree[turn].find(board->hash()) == game_tree[turn].end()){
+	/* if( game_tree[turn].find(board->hash()) == game_tree[turn].end()){ */
+	if( game_tree[turn][board->hash()].emerge == 0){
+		/* std::cout << game_tree[turn][board->hash()].emerge << std::endl; */
 		game_tree[turn][board->hash()].emerge = 1;
 		Dynamic_Evals r = negamax(board, turn, depth+1);
 
@@ -212,7 +222,7 @@ Board_p DobutsuAI::adventure(Board_p& board, int turn, int depth) {
 		//
 		// 不利ならば打開しない
 		// WORSE は ai_core.hppにて定義
-		// 150程度でひよこ得
+		// 現在は150程度でひよこ得
 		if( 
 			/* turn==BLACK&& */
 			game_tree[turn][board->hash()].eval.second < WORSE
