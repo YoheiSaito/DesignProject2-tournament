@@ -94,7 +94,7 @@ int16_t evalate(Board_p p){
 }
 // TODO : implements a-b algorithm
 Dynamic_Evals negamax( Board_p& board, int turn, int depth,
-		int a = INT16_MIN - 1, int b = INT16_MAX + 1) {
+		int a = INT16_MIN + 1, int b = INT16_MAX) {
 
 	Dynamic_Evals ret;
 	// mvs : move result 
@@ -121,11 +121,15 @@ Dynamic_Evals negamax( Board_p& board, int turn, int depth,
 			ret.first = i;
 			break;
 		}
-		Dynamic_Evals next_eval = negamax( i, ntrn, depth-1);
+		Dynamic_Evals next_eval = negamax( i, ntrn, depth-1, -b, -a);
 		if( -next_eval.second > ret.second){
 			ret.second = -next_eval.second;
 			ret.first = i;
 		}
+		if( a < ret.second)
+			a = ret.second;
+		if( a >= b)
+			break;
 	}
 	game_tree[board->hash()].eval[turn] = ret;
 	return ret;
