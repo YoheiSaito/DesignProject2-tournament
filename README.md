@@ -1,9 +1,9 @@
 # ia-2-tcejorp-ngised
 大学の某実験のプログラム, レポジトリ名は検索除けのため
 
-## Todo-List
- - [x] Toryo behaive
- - [x] Sennichite avoider
- - [ ] recraft evalate function
- - [ ] Tsume Shogi Solver
+## したいことリスト
+ - [x] 投了処理
+ - [x] 千日手回避
+ - [ ] 評価関数の改善
+ - [ ] 詰将棋ソルバーの組込み
  
