@@ -1,8 +1,8 @@
 #include <stdexcept>
 #include <iostream>
 #include <unistd.h>
-#define MAX_DEPS 8
 #include "ai_core.hpp"
+#define MAX_DEPS 4
 
 using namespace teyo_shogi;
 extern Game_Tree game_tree;
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 			base->write(input_board);
 
 			std::cout 
-				<< (winable_check(base, self)?"win":"not win") 
+				<< (is_win(base, self)?"win":"not win") 
 				<< std::endl; 
 			if(pre_board != nullptr){
 				if(!pre_board->check_legitimacy(*base, self)){
@@ -54,8 +54,6 @@ int main(int argc, char* argv[])
 			if(game_tree[base->hash()].emerge[self] > 4){
 				std::cout << "!!!sen-nchi-te!!!" << std::endl;
 			}
-			std::cout << game_tree[base->hash()].evalation[self] 
-				<< evalate(base, self)<< std::endl; 
 			//現在の状態の表示
 			int ntrn = (self==BLACK)?WHITE:BLACK;
 			//探索
@@ -74,7 +72,11 @@ int main(int argc, char* argv[])
 			cmd.whoami();
 			std::string input_board = cmd.board();
 			base->write(input_board);
-			pre_board = adventure(self, MAX_DEPS , base);
+			if( is_win( base, self))
+				std::cout << "checkmate ?" << std::endl;
+			else
+				std::cout << "not mate" << std::endl;
+			/* pre_board = adventure(self, MAX_DEPS , base); */
 			cmd.whoami();
 			while(cmd.turn() == self){
 				usleep(3e3);
@@ -91,7 +93,7 @@ int main(int argc, char* argv[])
 			//TODO:千日手カウント
 			base->print();
 			std::cout << "Black turn" << std::endl;
-			if( winable_check(base, BLACK)){
+			if( is_win(base, BLACK)){
 				std::cout << "end" <<std::endl;
 				break;
 			}
@@ -101,7 +103,7 @@ int main(int argc, char* argv[])
 			base->print();
 			std::cout << "White turn" << std::endl;
 			//TODO:千日手カウント
-			if( winable_check(base, WHITE)){
+			if( is_win(base, WHITE)){
 				std::cout << "end" <<std::endl;
 				break;
 			}

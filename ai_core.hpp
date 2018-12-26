@@ -5,15 +5,16 @@
 #include <vector>
 #include <memory>
 
+
 namespace {
 using namespace teyo_shogi;
 }
+using Dynamic_Evals = std::pair<Board_p, int16_t>;
 namespace teyo_shogi{
 	struct Game_Node{
-		int16_t evalation[2];
 		int emerge[2];
-		Board_p best[2];
 		Move_t next[2];
+		Dynamic_Evals eval[2];
 	};
 	using Game_Node_p = std::shared_ptr<Game_Node>;
 
@@ -27,6 +28,7 @@ typedef std::unordered_map<size_t, Game_Node> Game_Tree;
 
 // method
 Board_p adventure(Board_p& board, int turn, int depth);
-bool winable_check(Board_p& x, int self);
-int16_t evalate(Board_p p, int turn);
+Dynamic_Evals negamax( Board_p& board, int turn, int depth, int a, int b);
+bool is_win(Board_p& x, int self);
+int16_t evalate(Board_p p);
 
