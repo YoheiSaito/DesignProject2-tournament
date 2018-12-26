@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 			int ntrn = (self==BLACK)?WHITE:BLACK;
 			//探索
 			pre_board = adventure(base, self, MAX_DEPS);
-			pre_board->print();
+			/* pre_board->print(); */
 			
 			//コマンド送信
 			if( !base->to_command(cmd, self, pre_board)){

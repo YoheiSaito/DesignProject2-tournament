@@ -14,7 +14,7 @@ namespace teyo_shogi{
 	struct Game_Node{
 		int emerge[2];
 		Move_t next[2];
-		Dynamic_Evals eval[2];
+		Dynamic_Evals eval;
 	};
 	using Game_Node_p = std::shared_ptr<Game_Node>;
 

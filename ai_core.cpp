@@ -103,14 +103,17 @@ Dynamic_Evals negamax( Board_p& board, int turn, int depth,
 	int sgn =  (turn==BLACK)? 1: -1;
 	int ntrn = (turn==BLACK)? WHITE: BLACK;
 	if( depth == 0){
+
 		ret.second= sgn*evalate(board);
 		ret.first = nullptr;
+		game_tree[board->hash()].eval = ret;
 		return ret;
 	}
 	if( mvs.size() == 0){
 		// lose 
 		ret.second= -sgn*30000;
 		ret.first = nullptr;
+		game_tree[board->hash()].eval = ret;
 		return ret;
 	}
 	ret.second = INT16_MIN;
@@ -119,26 +122,35 @@ Dynamic_Evals negamax( Board_p& board, int turn, int depth,
 		if( is_win( i, turn) ){
 			ret.second = 30000;
 			ret.first = i;
+			game_tree[board->hash()].eval = ret;
 			break;
 		}
 		Dynamic_Evals next_eval = negamax( i, ntrn, depth-1, -b, -a);
 		if( -next_eval.second > ret.second){
 			ret.second = -next_eval.second;
 			ret.first = i;
+			if( a < ret.second){
+				a = ret.second;
+			}
 		}
-		if( a < ret.second)
-			a = ret.second;
 		if( a >= b)
 			break;
+
 	}
-	game_tree[board->hash()].eval[turn] = ret;
+	game_tree[board->hash()].eval = ret;
 	return ret;
 }
 
 Board_p adventure(Board_p& board, int turn, int depth) {
-	depth = 4;
+	depth = 7;
 	Dynamic_Evals r = negamax(board, turn, depth);
 	std::cout << "reading flow" << std::endl;
+	Board_p tmp = r.first;
+	for(int i = 0; i < depth; i++){
+		std::cout <<"depth " << i << std::endl;
+		/* tmp->print(); */
+		/* tmp = game_tree[tmp->hash()].eval.first; */
+	}
 	return r.first;
 }
 
