@@ -1,8 +1,8 @@
 // TODO
-// - Toryo behaive
 // - recraft evalate function
 // - Tsume Shogi Solver
-// - Sennichite avoider
+// - speed up
+// - 
 
 
 #include <unordered_map>
@@ -112,7 +112,7 @@ Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 		return ret;
 	}
 	Move_t mvs;
-	// 一度展開済みならその結果を使う
+	// 未展開なら展開を行う
 	if(game_tree[turn][board->hash()].next.size() == 0){
 		mvs = board->generate_move(turn);
 		game_tree[turn][board->hash()].next = mvs;
@@ -123,6 +123,7 @@ Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 		// lose 
 		ret.second= -sgn*30000;
 		ret.first = nullptr;
+		game_tree[turn][board->hash()].eval = ret;
 		return ret;
 	}
 	ret.second = INT16_MIN;
@@ -133,6 +134,7 @@ Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 		if( is_win( i, turn) ){
 			ret.second = 30000;
 			ret.first = i;
+			game_tree[turn][board->hash()].eval = ret;
 			break;
 		}
 		Dynamic_Evals next_eval = negamax( i, ntrn, depth-1, -b, -a);
@@ -148,27 +150,27 @@ Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 
 	}
 	
-	/// 一回目の実行でのみ, 評価関数をノンフロンティアとする
-	// それ以外をノンフロンティアとすると千日手回避に引っかかる?
 	game_tree[turn][board->hash()].eval = ret;
-
 	return ret;
 }
 
 Dynamic_Evals DobutsuAI::negamax_avoid( Board_p& board, int turn, int depth,
 		int a = INT16_MIN + 1, int b = INT16_MAX) 
 {
-	Dynamic_Evals ret;
 	// mvs : move result 
 	// from this vector, we choose the highest evalation game node;
-	auto mvs = board->generate_move(turn);
 	int ntrn = (turn==BLACK)? WHITE: BLACK;
 	// これは一回しか呼ばれない
 	// 動きが作れないこともない
+	
+	// mvsもあるハズ
+	Move_t mvs = game_tree[turn][board->hash()].next;
+
+	Dynamic_Evals ret;
 	ret.second = INT16_MIN;
 	ret.first = nullptr;
 	for(auto&& i: mvs){
-		// 勝でリターンできれば二度目なんて来ない
+		// 勝利でリターンできれば二度目なんて来るはずがない
 		if( game_tree[ntrn].find(i->hash()) != game_tree[ntrn].end()){
 			continue;
 		}

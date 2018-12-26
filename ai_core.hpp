@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-#define MAX_DEPS 8
+#define MAX_DEPS 7
 #define WORSE 150
 
 namespace {
@@ -23,6 +23,7 @@ namespace teyo_shogi{
 	using Game_Node_p = std::shared_ptr<Game_Node>;
 
 };
+
 // types 
 using Game_Tree = std::unordered_map<size_t, Game_Node>;
 // treeに入っていないものはフロンティア
