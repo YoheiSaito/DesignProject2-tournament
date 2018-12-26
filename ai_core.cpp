@@ -1,14 +1,18 @@
+// TODO
+// - Toryo behaive
+// - recraft evalate function
+// - Tsume Shogi Solver
+// - Sennichite avoider
+
+
 #include <unordered_map>
 #include "Board.hpp"
 #include "Command.hpp"
 #include "ai_core.hpp"
-#define DEBUG 1
+
 using namespace teyo_shogi;
-/* typedef std::unordered_map<Board_p, Game_Node> Game_Tree; */
 
-Game_Tree game_tree;
-
-bool is_win(Board_p& x, int self){
+bool DobutsuAI::is_win(Board_p& x, int self){
 	int trh = (self==BLACK)?0:BOARD_HEIGHT-1;
 	int enm = (self==BLACK)?WHITE:BLACK;
 
@@ -30,15 +34,16 @@ bool is_win(Board_p& x, int self){
 	return false;
 }
 
-int16_t evalate(Board_p p){
+int16_t DobutsuAI::evalate(Board_p p){
 	//0, 175, 185, 115, 100, 10000
+	// none, zou, Kirin, Niwatori hiyoko, Lion
 	static int16_t Mochigoma_point[] = {
-		0, 165, 175, 150, 90, 10000
+		0, 120, 140, 90, 90, 10000
 	};
 	static int16_t Koma_point[2][4][2][6] = {
 		{
 			{
-				{0, 130, 150, 105, -20, 10000},
+				{0, 170, 150, 105,  60, 10000},
 				{0, 130, 150, 115, 100, 10000},
 			},
 			//中二行
@@ -52,26 +57,26 @@ int16_t evalate(Board_p p){
 			},
 			{
 				{0, 130, 150, 115, 100, 10000},
-				{0, 130, 150, 105, -20, 10000},
+				{0, 130, 150, 105,  60, 10000},
 			}
 		},
 		//中央
 		{
 			{
-				{0, 130, 160, 105, -20, 10000},
+				{0, 130, 160, 105,  60, 10000},
 				{0, 130, 160, 125, 100, 10000},
 			},
 			{
-				{0, 155, 185, 130, 100, 10000},
-				{0, 155, 185, 130, 100, 10000}
+				{0, 155, 175, 130, 100, 10000},
+				{0, 155, 175, 130, 100, 10000}
 			},
 			{
-				{0, 155, 185, 130, 100, 10000},
-				{0, 155, 185, 130, 100, 10000}
+				{0, 155, 175, 130, 100, 10000},
+				{0, 155, 175, 130, 100, 10000}
 			},
 			{
 				{0, 130, 160, 125, 100, 10000},
-				{0, 130, 160, 105, -20, 10000},
+				{0, 130, 160, 105,  60, 10000},
 			}
 		}
 	};
@@ -93,7 +98,7 @@ int16_t evalate(Board_p p){
 	return r;
 }
 // TODO : implements a-b algorithm
-Dynamic_Evals negamax( Board_p& board, int turn, int depth,
+Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 		int a = INT16_MIN + 1, int b = INT16_MAX) {
 
 	Dynamic_Evals ret;
@@ -103,17 +108,14 @@ Dynamic_Evals negamax( Board_p& board, int turn, int depth,
 	int sgn =  (turn==BLACK)? 1: -1;
 	int ntrn = (turn==BLACK)? WHITE: BLACK;
 	if( depth == 0){
-
 		ret.second= sgn*evalate(board);
 		ret.first = nullptr;
-		game_tree[board->hash()].eval = ret;
 		return ret;
 	}
 	if( mvs.size() == 0){
 		// lose 
 		ret.second= -sgn*30000;
 		ret.first = nullptr;
-		game_tree[board->hash()].eval = ret;
 		return ret;
 	}
 	ret.second = INT16_MIN;
@@ -122,7 +124,6 @@ Dynamic_Evals negamax( Board_p& board, int turn, int depth,
 		if( is_win( i, turn) ){
 			ret.second = 30000;
 			ret.first = i;
-			game_tree[board->hash()].eval = ret;
 			break;
 		}
 		Dynamic_Evals next_eval = negamax( i, ntrn, depth-1, -b, -a);
@@ -133,24 +134,108 @@ Dynamic_Evals negamax( Board_p& board, int turn, int depth,
 				a = ret.second;
 			}
 		}
-		if( a >= b)
+		if( a > b)
 			break;
 
 	}
-	game_tree[board->hash()].eval = ret;
+	
+	/// 一回目の実行でのみ, 評価関数をノンフロンティアとする
+	// それ以外をノンフロンティアとすると千日手回避に引っかかる
+	if( depth == MAX_DEPS + 1)
+		game_tree[turn][board->hash()].eval = ret;
+
 	return ret;
 }
 
-Board_p adventure(Board_p& board, int turn, int depth) {
-	depth = 7;
-	Dynamic_Evals r = negamax(board, turn, depth);
-	std::cout << "reading flow" << std::endl;
-	Board_p tmp = r.first;
-	for(int i = 0; i < depth; i++){
-		std::cout <<"depth " << i << std::endl;
-		/* tmp->print(); */
-		/* tmp = game_tree[tmp->hash()].eval.first; */
+Dynamic_Evals DobutsuAI::negamax_avoid( Board_p& board, int turn, int depth,
+		int a = INT16_MIN + 1, int b = INT16_MAX) 
+{
+	Dynamic_Evals ret;
+	// mvs : move result 
+	// from this vector, we choose the highest evalation game node;
+	auto mvs = board->generate_move(turn);
+	int ntrn = (turn==BLACK)? WHITE: BLACK;
+	// これは一回しか呼ばれない
+	// 動きが作れないこともない
+	ret.second = INT16_MIN;
+	ret.first = nullptr;
+	for(auto&& i: mvs){
+		// 勝でリターンできれば二度目なんて来ない
+		if( game_tree[ntrn].find(i->hash()) != game_tree[ntrn].end()){
+			continue;
+		}
+		Dynamic_Evals next_eval = negamax( i, ntrn, depth-1, -b, -a);
+		if( -next_eval.second > ret.second){
+			ret.second = -next_eval.second;
+			ret.first = i;
+
+			if( a < ret.second){
+				a = ret.second;
+			}
+		}
+		if( a >= b)
+			break;
 	}
-	return r.first;
+
+	return ret;
+
+}
+
+Board_p DobutsuAI::adventure(Board_p& board, int turn, int depth) {
+
+	// 初出の盤面の時はemergeを1とし, 探索をする
+	if( game_tree[turn].find(board->hash()) == game_tree[turn].end()){
+		game_tree[turn][board->hash()].emerge = 1;
+		Dynamic_Evals r = negamax(board, turn, depth+1);
+
+		//読み筋のコンソール出力
+		std::cout << "reading flow" << std::endl;
+		Board_p tmp = r.first;
+		std::cout << "evals" << r.second << std::endl;
+		for(int i = 0; i <= depth; i++){
+			std::cout << "depth " << depth -i << std::endl;
+			tmp->print();
+			std::cout << std::endl;
+			tmp = game_tree[turn^(i%2)^1][tmp->hash()].eval.first;
+			if(tmp == nullptr)
+				break;
+		}
+		game_tree[turn^1][r.first->hash()].emerge = 1;
+		//盤面を返す
+		return r.first;
+
+	}else{
+		std::cout<< "twice or more"<< std::endl;
+		std::cout<< game_tree[turn][board->hash()].eval.second << std::endl;
+		// 局面カウント
+		game_tree[turn][board->hash()].emerge++;
+		//
+		// 不利ならば打開しない
+		// WORSE は ai_core.hppにて定義
+		// 150程度でひよこ得
+		if( 
+			/* turn==BLACK&& */
+			game_tree[turn][board->hash()].eval.second < WORSE
+		  ){
+			std::cout<< "GO TO SEN NICHI TE"<< std::endl;
+			game_tree[turn][board->hash()].emerge++;
+			return game_tree[turn][board->hash()].eval.first;
+		}
+
+		//打開時
+		//negamax_avoidを行って思しき局面が無ければ打開をやめる
+		Dynamic_Evals r = negamax_avoid(board, turn, depth+1);
+		if( r.first == nullptr){
+			std::cout<< "GO TO SEN NICHI TE"<< std::endl;
+			return game_tree[turn][board->hash()].eval.first;
+		}else if( r.second < WORSE){
+			std::cout<< "GO TO SEN NICHI TE"<< std::endl;
+			return game_tree[turn][board->hash()].eval.first;
+		}
+		std::cout<< "AVOID NICHI TE"<< std::endl;
+		game_tree[turn^1][r.first->hash()].emerge = 1;
+		return r.first;
+	}
+
 }
 

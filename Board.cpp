@@ -30,7 +30,7 @@ bool Board::operator>(Board & right){
 }
 
 
-Move_t Board::generate_move(int turn){
+inline Move_t Board::generate_move(int turn){
 	Move_t ret;
 	const int enemy = (turn == BLACK)?WHITE:BLACK;
 	for( int i = 0; i < BOARD_WIDTH; i++){
@@ -715,7 +715,7 @@ Board_p Board::is_checkmate(int player){
 
 // thanks to @sakutou-metsu
 // https://qiita.com/sokutou-metsu/items/6017a64b264ff023ec72
-size_t Board::hash(){
+inline size_t Board::hash(){
 	std::string bytes(reinterpret_cast<const char*>(this), sizeof(Board));
 	return std::hash<std::string>()(bytes);
 }

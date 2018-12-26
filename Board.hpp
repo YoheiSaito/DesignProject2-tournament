@@ -39,7 +39,7 @@ struct Board{
 	bool operator>(Board & right);
 	bool operator!=(Board & right);
 	Board operator=(Board & right);
-	static char koma_to_char (Koma &t);
+	static inline char koma_to_char (Koma &t);
 	Move_t generate_move(int turn);
 	Move_t generate_check(int player);
 	Move_t generate_uncheck(int player);
@@ -59,11 +59,11 @@ struct Board{
 	Board_p move_piece    (std::string src, std::string dst);
 	bool to_command(Command& cmd, int turn, Board_p after);
 	private:
-	Move_t lion_check     (int w, int h);
-	Move_t niwatori_check (int w, int h);
-	Move_t hiyoko_check   (int w, int h);
-	Move_t zou_check      (int w, int h);
-	Move_t kirin_check    (int w, int h);
+	inline Move_t lion_check     (int w, int h);
+	inline Move_t niwatori_check (int w, int h);
+	inline Move_t hiyoko_check   (int w, int h);
+	inline Move_t zou_check      (int w, int h);
+	inline Move_t kirin_check    (int w, int h);
 	Board_p move_piece (int i, int j, int w, int h, 
 			bool avoid_ckeck = false);
 }; // struct Board 
