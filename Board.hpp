@@ -48,6 +48,8 @@ struct Board{
 	Board operator=(Board & right);
 	static inline char koma_to_char (Koma &t);
 	Move_t generate_move(int turn);
+	Move_t generate_check(int turn);
+	Move_t generate_avoid_die(int turn);
 	Board_p is_checkmate(int player);
 	/* Move_t generate_safemove(int player){ */
 	bool check_legitimacy(Board & after, int self);

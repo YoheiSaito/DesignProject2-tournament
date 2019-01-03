@@ -33,6 +33,7 @@ bool Board::operator>(Board & right){
 inline Move_t Board::generate_move(int turn){
 	Move_t ret;
 	const int enemy = (turn == BLACK)?WHITE:BLACK;
+	// 駒を動かす
 	for( int i = 0; i < BOARD_WIDTH; i++){
 		for( int j = 0; j < BOARD_HEIGHT; j++){
 			if( field[i][j].player == turn){
@@ -64,6 +65,7 @@ inline Move_t Board::generate_move(int turn){
 			}
 		}
 	}
+	// 手元から出す
 	for( int i = 0; i < MAX_CAPS; i++){
 		// 盤面のコピー
 		if(this->caps[turn][i].type == BLANK){
@@ -77,9 +79,6 @@ inline Move_t Board::generate_move(int turn){
 		for( int j = 0; j < BOARD_WIDTH; j++){
 			for( int k = 0; k < BOARD_HEIGHT; k++){
 				if( field[j][k].type == BLANK){
-
-
-
 // Down Indent
 	/* コピーして挿入 */
 	Board_p nb(new Board);
@@ -96,11 +95,7 @@ inline Move_t Board::generate_move(int turn){
 	nb->write_field(this->field);
 	nb->field[j][k] = release;
 	ret.push_back(nb);
-	/*コピーして挿入*/
-
 // Up Indent
-
-
 				}
 			}
 		}
@@ -638,6 +633,69 @@ bool Board::to_command(Command& cmd, int turn, Board_p after){
 	}
 }
 
+Move_t Board::generate_check(int turn){
+	Move_t ret = generate_move(turn);
+	int x,y;
+	Koma enmy_lion;
+	enmy_lion.player = turn^1;
+	enmy_lion.type = LION;
+	for(x = 0; x < BOARD_WIDTH; x++){
+		for(y = 0; y < BOARD_HEIGHT; y++){
+			if( field[x][y].data == enmy_lion.data)
+				break;
+		}
+		if( field[x][y].data == enmy_lion.data)
+			break;
+	}
+	std::cout << x << y << std::endl;
+	for(auto i = 0; i < (int)(ret.size()); i++){
+		if(ret[i]->field[x][y].data == enmy_lion.data){
+			if( !ret[i]->is_check( x, y, turn)){
+				ret.erase(ret.begin() + i);
+				i--;
+			}
+		}
+	} 
+	return ret;
+}
+Move_t Board::generate_avoid_die(int turn){
+	Move_t ret = generate_move(turn);
+	int x,y;
+	Koma self_lion;
+	self_lion.player = turn;
+	self_lion.type = LION;
+	for(x = 0; x < BOARD_WIDTH; x++){
+		for(y = 0; y < BOARD_HEIGHT; y++){
+			if( field[x][y].data == self_lion.data)
+				break;
+		}
+		if( field[x][y].data == self_lion.data)
+			break;
+	}
+
+	for(auto i = 0; i < (int)(ret.size()); i++){
+		if(ret[i]->field[x][y].data == self_lion.data){
+			if( ret[i]->is_check( x, y, turn^1)){
+				ret.erase(ret.begin() + i);
+				i--;
+			}
+		}else for(int j = 0; j < BOARD_WIDTH; j++){
+			for(int k = 0; k < BOARD_HEIGHT; k++){
+				if(ret[i]->field[j][k].data == self_lion.data){
+					if( ret[i]->is_check( j, k, turn^1)){
+						ret.erase(ret.begin() + i);
+						i--;
+					}
+				}
+			}
+		}
+
+	} 
+	return ret;
+
+}
+Board_p Board::is_ckeckmate(int player){
+}
 std::size_t Board::Hash::operator()(const Board& key) const {
 	std::string bytes(reinterpret_cast<const char*>(&key), sizeof(Board));
 	return std::hash<std::string>()(bytes);

@@ -37,6 +37,6 @@ run: $(TARGET)
 	$(TARGET)
 sim: $(TARGET)
 	$(TARGET) 0 0 0
-analysis: $(TARGET)
+debug: $(TARGET)
 	$(TARGET) 0 0 0 0
 -include $(DEPENDS)
