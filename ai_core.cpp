@@ -121,7 +121,7 @@ Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 	}
 	if( mvs.size() == 0){
 		// lose 
-		ret.second= -sgn*30000;
+		ret.second= -sgn*(30000-depth);
 		ret.first = nullptr;
 		game_tree[turn][board->hash()].eval = ret;
 		return ret;
@@ -132,7 +132,7 @@ Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 	for(auto&& i: mvs){
 		// if generated board is ended board, return win
 		if( is_win( i, turn) ){
-			ret.second = 30000;
+			ret.second = 30000+depth;
 			ret.first = i;
 			game_tree[turn][board->hash()].eval = ret;
 			break;

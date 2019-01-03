@@ -633,94 +633,12 @@ bool Board::to_command(Command& cmd, int turn, Board_p after){
 		src.push_back((char)( sry+'1'));
 		std::string dst = {(char)(dsx +'A')};
 		dst.push_back((char)(dsy +'1'));
-		std::cout << "mv "<<src <<' '<< dst << std::endl;
+		std::cout << "mv " << src << ' '<<  dst<< std::endl;
 		return cmd.move(src, dst);
 	}
 }
 
-
-Move_t Board::generate_check(int player){
-	Move_t in = this->generate_move(player);
-	Koma elion;
-	elion.player = player^1;
-	elion.type = LION;
-	for(int i = 0; i < BOARD_WIDTH; i++){
-		for(int j = 0; j<BOARD_HEIGHT; j++){
-			if(field[i][j].data == elion.data){
-				Move_t::iterator c = in.begin();
-				while(c !=  in.end()){
-					if( !(*c)->is_check(i,j,player) ||
-					     (*c)->caps[player][0].type==LION
-					  ){
-						in.erase(c);
-					}else{
-						c++;
-					}
-				}
-				return in;
-			}
-		}
-	}
-	return in;
-}
-Move_t Board::generate_uncheck(int player){
-	Move_t mvs = this->generate_move(player);
-	Move_t ret;
-	Koma slion;
-	slion.player = player;
-	slion.type = LION;
-	int enmy = player ^1;
-
-	for( auto&& c :mvs){
-		for(int i = 0; i < BOARD_WIDTH; i++){
-			for(int j = 0; j<BOARD_HEIGHT; j++){
-				if((c)->field[i][j].data == slion.data){
-					if( !(c)->is_check(i,j,enmy)){
-						ret.push_back(c);
-					}
-				}
-			}
-		}
-	}
-	return ret;
-}
-// Is the players lion  Tsumero
-Board_p Board::is_checkmate(int player){
-	Move_t checks = this->generate_check(player);
-	for( auto&&c :checks){
-		Move_t ucheck = c->generate_uncheck(player^1);
-		bool checkmate_flg = true;
-		/* for( auto&&uc : ucheck){ */
-			/* if(uc->is_checkmate(player) == nullptr){ */
-				/* checkmate_flg = false; */
-				break;
-			/* } */
-		/* } */
-		if(checkmate_flg == true)
-			return c;
-	}
-	return nullptr;
-}
-/* Move_t Board::generate_safemove(int player){ */
-/* 	Move_t ret; */
-/* 	int enmy = player ^1; */
-/* 	Move_t ucs = generate_uncheck(); */
-/* 	for( auto&&c : ucs){ */
-/* 		if (c->is_checkmate(enmy) == nullptr){ */
-/* 			ret.push_back(c); */
-/* 		} */
-/* 	} */
-/* 	return ret; */
-/* } */
-
-// thanks to @sakutou-metsu
-// https://qiita.com/sokutou-metsu/items/6017a64b264ff023ec72
-inline size_t Board::hash(){
-	std::string bytes(reinterpret_cast<const char*>(this), sizeof(Board));
-	return std::hash<std::string>()(bytes);
-}
-
-inline std::size_t Board::Hash::operator()(const Board& key) const {
+std::size_t Board::Hash::operator()(const Board& key) const {
 	std::string bytes(reinterpret_cast<const char*>(&key), sizeof(Board));
 	return std::hash<std::string>()(bytes);
 }

@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
-#include "definition.hpp"
+#include "komadef.hpp"
 #include "Command.hpp"
 namespace teyo_shogi{
 
@@ -21,6 +21,13 @@ struct Koma{
 
 }
 struct Board;
+
+typedef enum {
+	ALL,
+	CHECK,
+	AVOID,
+
+} Genmove_t;
 
 using Board_p = std::shared_ptr<Board>;
 using Move_t  = std::vector<Board_p>; 
@@ -41,8 +48,6 @@ struct Board{
 	Board operator=(Board & right);
 	static inline char koma_to_char (Koma &t);
 	Move_t generate_move(int turn);
-	Move_t generate_check(int player);
-	Move_t generate_uncheck(int player);
 	Board_p is_checkmate(int player);
 	/* Move_t generate_safemove(int player){ */
 	bool check_legitimacy(Board & after, int self);
@@ -55,7 +60,12 @@ struct Board{
 	void write_capture(Koma new_caps[][MAX_CAPS]);
 	void write(Board & board);
 	void print();
-	size_t hash();
+	inline size_t hash(){
+		std::string bytes(
+			reinterpret_cast<const char*>(this), sizeof(Board)
+		);
+		return std::hash<std::string>()(bytes);
+	}
 	Board_p move_piece    (std::string src, std::string dst);
 	bool to_command(Command& cmd, int turn, Board_p after);
 	private:

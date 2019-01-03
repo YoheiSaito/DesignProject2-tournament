@@ -1,6 +1,6 @@
 #include <unistd.h>
 #include <regex>
-#include "definition.hpp"
+#include "komadef.hpp"
 #include "command.hpp"
 
 		boost::asio::io_service io_service;

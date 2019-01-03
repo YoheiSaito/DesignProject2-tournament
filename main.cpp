@@ -1,6 +1,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <unistd.h>
+#include <fstream>
 #include "ai_core.hpp"
 
 using namespace teyo_shogi;
@@ -48,7 +49,6 @@ int main(int argc, char* argv[])
 			}
 			//探索
 			pre_board = ai.adventure(base, self, MAX_DEPS);
-			/* pre_board->print(); */
 			
 			//コマンド送信
 			if( !base->to_command(cmd, self, pre_board)){
@@ -79,13 +79,12 @@ int main(int argc, char* argv[])
 
 #endif
 		}
-	}else{
+	}else if(argc == 4){
 		DobutsuAI blackAI, whiteAI;
 		Board_p pre_board(new Board);
 		std::string init_str = std::string(INITBOARD);
 		base->write(init_str);
 		while(1){
-			//TODO:千日手カウント
 			base->print();
 			if( whiteAI.is_win(base, WHITE)){
 				std::cout << "WHITE WIN" <<std::endl;
@@ -95,7 +94,6 @@ int main(int argc, char* argv[])
 			base = blackAI.adventure(base, BLACK, MAX_DEPS);
 
 			base->print();
-			//TODO:千日手カウント
 			if( blackAI.is_win(base, BLACK)){
 				std::cout << "BLACK WIN" <<std::endl;
 				break;
@@ -103,6 +101,8 @@ int main(int argc, char* argv[])
 			std::cout << "White turn" << std::endl;
 			base = whiteAI.adventure(base, WHITE, MAX_DEPS);
 		}
+	}else{
+		
 	}
 	} catch(std::string e){
 		std::cerr << e << std::endl;

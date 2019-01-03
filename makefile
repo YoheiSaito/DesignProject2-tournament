@@ -5,7 +5,7 @@ CFLAGS    = -g -MMD -O3 -MP -Wall -Wextra -Winit-self -Wno-missing-field-initial
 ifeq "$(shell getconf LONG_BIT)" "64"
 	  LDFLAGS = -lboost_system
   else
-	  LDFLAGS =
+	  LDFLAGS = -lboost_system
   endif
   LIBS      =
   INCLUDE   = -I./include
@@ -37,4 +37,6 @@ run: $(TARGET)
 	$(TARGET)
 sim: $(TARGET)
 	$(TARGET) 0 0 0
+analysis: $(TARGET)
+	$(TARGET) 0 0 0 0
 -include $(DEPENDS)
