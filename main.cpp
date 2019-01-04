@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 			<< ((self==BLACK)?"first":"second") << std::endl;
 		DobutsuAI ai;
 		while(1){
-	#if 0
+	#if 1
 			//wait while enemy turn
 			std::cout << "waiting" << std::endl;
 			do{
@@ -72,7 +72,6 @@ int main(int argc, char* argv[])
 			/* else */
 			/* 	std::cout << "not mate" << std::endl; */
 			/* pre_board = adventure(self, MAX_DEPS , base); */
-			auto mv = base->generate_avoid_die(self);
 			cmd.whoami();
 			while(cmd.turn() == self){
 				usleep(3e3);

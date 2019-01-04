@@ -50,7 +50,6 @@ struct Board{
 	Move_t generate_move(int turn);
 	Move_t generate_check(int turn);
 	Move_t generate_avoid_die(int turn);
-	Board_p is_checkmate(int player);
 	/* Move_t generate_safemove(int player){ */
 	bool check_legitimacy(Board & after, int self);
 	//w,hにplayerのコマの利きがあるか

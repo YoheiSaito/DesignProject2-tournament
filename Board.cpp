@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <iostream>
 #include <memory>
-#include <tr1/unordered_map>
 #include <functional>
 #include <boost/algorithm/string/classification.hpp> 
 #include <boost/algorithm/string/split.hpp>
@@ -647,7 +646,6 @@ Move_t Board::generate_check(int turn){
 		if( field[x][y].data == enmy_lion.data)
 			break;
 	}
-	std::cout << x << y << std::endl;
 	for(auto i = 0; i < (int)(ret.size()); i++){
 		if(ret[i]->field[x][y].data == enmy_lion.data){
 			if( !ret[i]->is_check( x, y, turn)){
@@ -693,8 +691,6 @@ Move_t Board::generate_avoid_die(int turn){
 	} 
 	return ret;
 
-}
-Board_p Board::is_ckeckmate(int player){
 }
 std::size_t Board::Hash::operator()(const Board& key) const {
 	std::string bytes(reinterpret_cast<const char*>(&key), sizeof(Board));

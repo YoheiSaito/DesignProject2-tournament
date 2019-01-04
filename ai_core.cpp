@@ -34,69 +34,6 @@ bool DobutsuAI::is_win(Board_p& x, int self){
 	return false;
 }
 
-int16_t DobutsuAI::evalate(Board_p p){
-	//0, 175, 185, 115, 100, 10000
-	// none, zou, Kirin, Niwatori hiyoko, Lion
-	static int16_t Mochigoma_point[] = {
-		0, 120, 140, 90, 90, 10000
-	};
-	static int16_t Koma_point[2][4][2][6] = {
-		{
-			{
-				{0, 170, 150, 105,  60, 10000},
-				{0, 130, 150, 115, 100, 10000},
-			},
-			//中二行
-			{
-				{0, 140, 160, 120, 100, 10000},
-				{0, 140, 160, 120, 100, 10000}
-			},
-			{
-				{0, 140, 160, 120, 100, 10000},
-				{0, 140, 160, 120, 100, 10000}
-			},
-			{
-				{0, 130, 150, 115, 100, 10000},
-				{0, 130, 150, 105,  60, 10000},
-			}
-		},
-		//中央
-		{
-			{
-				{0, 130, 160, 105,  60, 10000},
-				{0, 130, 160, 125, 100, 10000},
-			},
-			{
-				{0, 155, 175, 130, 100, 10000},
-				{0, 155, 175, 130, 100, 10000}
-			},
-			{
-				{0, 155, 175, 130, 100, 10000},
-				{0, 155, 175, 130, 100, 10000}
-			},
-			{
-				{0, 130, 160, 125, 100, 10000},
-				{0, 130, 160, 105,  60, 10000},
-			}
-		}
-	};
-	int16_t r = 0;
-	for(int i = 0; i < BOARD_WIDTH; i++){
-		for(int j = 0; j < BOARD_HEIGHT; j++){
-			int kt = p->field[i][j].type;
-			if( p->field[i][j].player == BLACK){
-				r += Koma_point[i%2][j][BLACK][kt];
-			}else{
-				r -= Koma_point[i%2][j][WHITE][kt];
-			}
-		}
-	}
-	for( int i = 0; i < MAX_CAPS; i++){
-		r += Mochigoma_point[p->caps[BLACK][i].type];
-		r -= Mochigoma_point[p->caps[WHITE][i].type];
-	}
-	return r;
-}
 
 Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 		int a = INT16_MIN + 1, int b = INT16_MAX) {
@@ -107,7 +44,7 @@ Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 	int sgn =  (turn==BLACK)? 1: -1;
 	int ntrn = (turn==BLACK)? WHITE: BLACK;
 	if( depth == 0){
-		ret.second= sgn*evalate(board);
+		ret.second= sgn*eval.evalate(board);
 		ret.first = nullptr;
 		return ret;
 	}
@@ -121,7 +58,8 @@ Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 	}
 	if( mvs.size() == 0){
 		// lose 
-		ret.second= -sgn*(30000-depth);
+		// 負けるときは長い手順を選ぶ(depthは小さいほうが良い)
+		ret.second= -sgn*(30000+depth);
 		ret.first = nullptr;
 		game_tree[turn][board->hash()].eval = ret;
 		return ret;
@@ -132,6 +70,7 @@ Dynamic_Evals DobutsuAI::negamax( Board_p& board, int turn, int depth,
 	for(auto&& i: mvs){
 		// if generated board is ended board, return win
 		if( is_win( i, turn) ){
+			// 勝つときは短い手順を選ぶ(depthは大きいほうが良い)
 			ret.second = 30000+depth;
 			ret.first = i;
 			game_tree[turn][board->hash()].eval = ret;
@@ -224,7 +163,6 @@ Board_p DobutsuAI::adventure(Board_p& board, int turn, int depth) {
 		//
 		// 不利ならば打開しない
 		// WORSE は ai_core.hppにて定義
-		// 現在は150程度でひよこ得
 		if( 
 			/* turn==BLACK&& */
 			game_tree[turn][board->hash()].eval.second < WORSE
