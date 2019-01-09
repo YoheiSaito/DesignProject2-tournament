@@ -2,7 +2,8 @@
 #include <string>
 #include "Board.hpp"
 namespace teyo_shogi{
-struct Evalation{
+struct Evalation
+{
 	//0, 175, 185, 115, 100, 10000
 	// none, zou, Kirin, Niwatori hiyoko, Lion
 	union{
@@ -18,7 +19,7 @@ struct Evalation{
 
 	/* int16_t Mochigoma_point[] */
 	/* int16_t Koma_point[2][4][2][6] */
-	Evalation(std::string evfilename = "best.evl");
+	Evalation(std::string evfilename = "../evl/best.evl");
 	int16_t evalate(Board_p p);
 };
 }

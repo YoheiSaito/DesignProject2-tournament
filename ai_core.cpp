@@ -1,10 +1,9 @@
 // TODO
 // - recraft evalate function
-// - Tsume Shogi Solver
 // - speed up
-// - 
 
 
+#include <omp.h>
 #include <unordered_map>
 #include "Board.hpp"
 #include "Command.hpp"
@@ -101,7 +100,6 @@ Dynamic_Evals DobutsuAI::negamax_avoid( Board_p& board, int turn, int depth,
 	int ntrn = (turn==BLACK)? WHITE: BLACK;
 	// これは一回しか呼ばれない
 	// 動きが作れないこともない
-	
 	// mvsもあるハズ
 	Move_t mvs = game_tree[turn][board->hash()].next;
 
@@ -110,14 +108,13 @@ Dynamic_Evals DobutsuAI::negamax_avoid( Board_p& board, int turn, int depth,
 	ret.first = nullptr;
 	for(auto&& i: mvs){
 		// 勝利でリターンできれば二度目なんて来るはずがない
-		if( game_tree[ntrn].find(i->hash()) != game_tree[ntrn].end()){
+		if( game_tree[ntrn][i->hash()].emerge != 0 ){
 			continue;
 		}
 		Dynamic_Evals next_eval = negamax( i, ntrn, depth-1, -b, -a);
 		if( -next_eval.second > ret.second){
 			ret.second = -next_eval.second;
 			ret.first = i;
-
 			if( a < ret.second){
 				a = ret.second;
 			}
@@ -130,15 +127,30 @@ Dynamic_Evals DobutsuAI::negamax_avoid( Board_p& board, int turn, int depth,
 
 }
 
-Board_p DobutsuAI::adventure(Board_p& board, int turn, int depth) {
+#include <chrono>
+Board_p DobutsuAI::adventure(Board_p& board, int turn, int depth, bool redout){
 
 	// 初出の盤面の時はemergeを1とし, 探索をする
 	/* if( game_tree[turn].find(board->hash()) == game_tree[turn].end()){ */
+	using namespace std::chrono;
 	if( game_tree[turn][board->hash()].emerge == 0){
 		/* std::cout << game_tree[turn][board->hash()].emerge << std::endl; */
 		game_tree[turn][board->hash()].emerge = 1;
-		Dynamic_Evals r = negamax(board, turn, depth+1);
 
+		Dynamic_Evals r;
+
+		auto tstart = std::chrono::system_clock::now(); 
+		for( int d = 7; d <= depth; d++){
+			r = negamax(board, turn, d);
+			auto dur = (system_clock::now() - tstart); 
+			int time = duration_cast<milliseconds>(dur).count();
+			std::cout << d <<'\t'<< r.second << '\t'<< time << std::endl;
+			if(time > 8000||abs(r.second) > 29999){
+				break;
+			}
+		}
+
+	if(redout == true){
 		//読み筋のコンソール出力
 		std::cout << "reading flow" << std::endl;
 		Board_p tmp = r.first;
@@ -151,41 +163,61 @@ Board_p DobutsuAI::adventure(Board_p& board, int turn, int depth) {
 			if(tmp == nullptr)
 				break;
 		}
-		game_tree[turn^1][r.first->hash()].emerge = 1;
-		//盤面を返す
-		return r.first;
+	}
+	game_tree[turn^1][r.first->hash()].emerge = 1;
+	//盤面を返す
+	return r.first;
 
 	}else{
-		std::cout<< "twice or more"<< std::endl;
-		std::cout<< game_tree[turn][board->hash()].eval.second << std::endl;
+		if(redout == true){
+			std::cout<< "twice or more"<< std::endl;
+			std::cout <<turn << '\t'<< 
+				game_tree[turn][board->hash()].eval.second << std::endl;
+		}
 		// 局面カウント
 		game_tree[turn][board->hash()].emerge++;
 		//
 		// 不利ならば打開しない
 		// WORSE は ai_core.hppにて定義
 		if( 
-			/* turn==BLACK&& */
-			game_tree[turn][board->hash()].eval.second < WORSE
+				/* turn==BLACK&& */
+				game_tree[turn][board->hash()].eval.second < WORSE
 		  ){
-			std::cout<< "GO TO SEN NICHI TE"<< std::endl;
+			if( redout)
+				std::cout<< "GO TO SEN NICHI TE1"<< std::endl;
 			game_tree[turn][board->hash()].emerge++;
 			return game_tree[turn][board->hash()].eval.first;
 		}
 
 		//打開時
 		//negamax_avoidを行って思しき局面が無ければ打開をやめる
-		Dynamic_Evals r = negamax_avoid(board, turn, depth+1);
+		Dynamic_Evals r;
+
+		auto tstart = std::chrono::system_clock::now(); 
+		for( int d = 7; d <= depth; d++){
+			r = negamax_avoid(board, turn, d);
+			auto dur = (system_clock::now() - tstart); 
+			int time = duration_cast<milliseconds>(dur).count();
+			std::cout << d<< '\t'<< time << std::endl;
+			if(time > 6000||abs(r.second) > 29999){
+				break;
+			}
+		}
+
 		if( r.first == nullptr){
-			std::cout<< "GO TO SEN NICHI TE"<< std::endl;
-			return game_tree[turn][board->hash()].eval.first;
-		}else if( r.second < WORSE){
-			std::cout<< "GO TO SEN NICHI TE"<< std::endl;
+			if( redout)
+				std::cout<< "GO TO SEN NICHI TE2"<< std::endl;
 			return game_tree[turn][board->hash()].eval.first;
 		}
-		std::cout<< "AVOID NICHI TE"<< std::endl;
+		else if( r.second < WORSE){ 
+			if( redout)
+				std::cout<< "GO TO SEN NICHI TE3"<< std::endl;
+			return game_tree[turn][board->hash()].eval.first;
+		}
+		if( redout)
+			std::cout<< "AVOID NICHI TE"<< std::endl;
 		game_tree[turn^1][r.first->hash()].emerge = 1;
 		return r.first;
 	}
-
 }
 

@@ -1,5 +1,6 @@
 #include "evalation.hpp"
 
+#include <omp.h>
 #include <fstream>
 #include <list>
 #include <boost/algorithm/string.hpp>
@@ -19,7 +20,7 @@ Evalation::Evalation(std::string evfile){
 		std::list<std::string> list_str;
 		std::string delim("\t");
 		boost::split(list_str, istr, boost::is_any_of(delim));
-		if(list_str.size() < 5)
+		if(list_str.size() < 6)
 			continue;
 		auto itr = list_str.begin();
 		int i = -1;
@@ -35,6 +36,8 @@ Evalation::Evalation(std::string evfile){
 				itr++;
 				insert_point[i][j+1] = std::stoi(*itr);
 			}
+			itr++;
+			insert_point[i][5] = std::stoi(*itr) + 10000;
 		} 
 		
 	}
@@ -57,42 +60,31 @@ Evalation::Evalation(std::string evfile){
 	Koma_point[1][3][0] = &Koma_point_base[5][0];
 	Koma_point[1][3][1] = &Koma_point_base[1][0];
 
-#include <iostream>
-	for(int t = 0; t < 6; t++){
-		for(int x = 0; x < BOARD_WIDTH; x++){
-			for(int y = 0; y < BOARD_HEIGHT; y++){
-				std::cout << Koma_point[x%2][y][0][t] 
-					<< '\t'<< std::flush;
-			}
-			std::cout << std::endl;
-		}
-		std::cout << std::endl;
-	}
-
-	for(int t = 0; t < 6; t++){
-		for(int x = 0; x < BOARD_WIDTH; x++){
-			for(int y = 0; y < BOARD_HEIGHT; y++){
-				std::cout << Koma_point[x%2][y][1][t] 
-					<< '\t'<< std::flush;
-			}
-			std::cout << std::endl;
-		}
-		std::cout << std::endl;
-	}
-
+/* #include <iostream> */
+/* 	for(int t = 0; t < 6; t++){ */
+/* 		for(int x = 0; x < BOARD_WIDTH; x++){ */
+/* 			for(int y = 0; y < BOARD_HEIGHT; y++){ */
+/* 				std::cout << Koma_point[x%2][y][0][t] */ 
+/* 					<< '\t'<< std::flush; */
+/* 			} */
+/* 			std::cout << std::endl; */
+/* 		} */
+/* 		std::cout << std::endl; */
+/* 	} */
 }
 
 int16_t Evalation::evalate(Board_p p){
 
 	int16_t r = 0;
-	for(int i = 0; i < BOARD_WIDTH; i++){
-		for(int j = 0; j < BOARD_HEIGHT; j++){
-			int kt = p->field[i][j].type;
-			if( p->field[i][j].player == BLACK){
-				r += Koma_point[i%2][j][BLACK][kt];
-			}else{
-				r -= Koma_point[i%2][j][WHITE][kt];
-			}
+#pragma omp parallel for reduction(sum:r)
+	for( int k = 0; k < BOARD_WIDTH*BOARD_HEIGHT; k++){
+		int j = k % BOARD_HEIGHT;
+		int i = k / BOARD_HEIGHT;
+		int kt = p->field[i][j].type;
+		if( p->field[i][j].player == BLACK){
+			r += Koma_point[i%2][j][BLACK][kt];
+		}else{
+			r -= Koma_point[i%2][j][WHITE][kt];
 		}
 	}
 	for( int i = 0; i < MAX_CAPS; i++){

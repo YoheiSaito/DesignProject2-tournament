@@ -1,11 +1,11 @@
 # thanks to  URIN HACK
 # https://urin.github.io/posts/2013/simple-makefile-for-clang
 COMPILER  = clang++
-CFLAGS    = -g -MMD -O3 -MP -Wall -Wextra -Winit-self -Wno-missing-field-initializers -fopenmp
+CFLAGS    = -g -MMD -O3 -MP -Wall -Wextra -Winit-self -Wno-missing-field-initializers
 ifeq "$(shell getconf LONG_BIT)" "64"
-	  LDFLAGS = -lboost_system
+	  LDFLAGS = -lboost_system -fopenmp
   else
-	  LDFLAGS = -lboost_system
+	  LDFLAGS = -lboost_system -fopenmp
   endif
   LIBS      =
   INCLUDE   = -I./include
@@ -35,8 +35,7 @@ clean:
 		-rm -f $(OBJECTS) $(DEPENDS) $(TARGET)
 run: $(TARGET)
 	$(TARGET)
-sim: $(TARGET)
-	$(TARGET) 0 0 0
-debug: $(TARGET)
-	$(TARGET) 0 0 0 0
+
+
+
 -include $(DEPENDS)

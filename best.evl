@@ -1,9 +1,9 @@
-Posi	zou	lion	niwa	hiyoko
-0	120	140	90	90	mochigoma
-1	130	150	105	60	top-side
-2	130	160	105	60	top-center
-3	140	160	120	100	middle-side
-4	155	175	130	100	middle-center
-5	130	150	115	100	bottom-side
-6	130	160	125	100	bottom-center
+Posi	zou	kirin	niwa	hiyoko	lion+10000
+0	120	140	90	90	0	mochigoma
+1	130	150	105	60	0	top-side
+2	130	160	105	60	0	top-center
+3	140	160	120	100	0	middle-side
+4	155	175	130	100	0	middle-center
+5	130	150	115	100	0	bottom-side
+6	130	160	125	100	0	bottom-center
 

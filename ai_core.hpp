@@ -7,9 +7,10 @@
 #include "evalation.hpp"
 #include "Command.hpp"
 
-#define MAX_DEPS 8
+#define MAX_DEPS 11
+/* #define MAX_DEPS 7 */
 // 現在は150程度でひよこ得
-#define WORSE 150
+#define WORSE 80
 
 namespace {
 using namespace teyo_shogi;
@@ -21,10 +22,8 @@ namespace teyo_shogi{
 		int emerge;
 		Move_t next;
 		Dynamic_Evals eval;
-		bool check;
 	};
 	using Game_Node_p = std::shared_ptr<Game_Node>;
-
 };
 
 // types 
@@ -46,7 +45,7 @@ DobutsuAI():
 {}
 
 Evalation eval;
-Board_p adventure(Board_p& board, int turn, int depth);
+Board_p adventure(Board_p& board, int turn, int depth, bool redout = false);
 Dynamic_Evals negamax(Board_p& board, int turn, int depth, int a, int b);
 Dynamic_Evals negamax_avoid(Board_p& board, int turn, int depth, int a, int b);
 bool is_win(Board_p& x, int self);
